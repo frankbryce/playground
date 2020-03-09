@@ -165,6 +165,7 @@ let colorScale = d3.scale.linear<string, number>()
                      .domain([-1, 0, 1])
                      .range(["#f59322", "#e8eaeb", "#0877bd"])
                      .clamp(true);
+let colorScaleBinary = w => w < 0 ? "#f59322" : "#0877bd";
 let iter = 0;
 let trainData: Example2D[] = [];
 let testData: Example2D[] = [];
@@ -412,7 +413,9 @@ function updateWeightsUI(network: nn.Node[][], container) {
             .style({
               "stroke-dashoffset": -iter / 3,
               "stroke-width": linkWidthScale(Math.abs(link.weight)),
-              "stroke": colorScale(link.weight)
+              "stroke": colorScaleBinary(link.weight),
+              "stroke-opacity": link.source.enabled && link.dest.enabled ?
+                                null : 0.3
             })
             .datum(link);
       }
@@ -475,6 +478,10 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
     }
     nodeGroup.classed(activeOrNotClass, true);
   }
+  let nonInputActiveOrInactive = "active";
+  if (!isInput) {
+    nonInputActiveOrInactive = node.enabled ? "active" : "inactive";
+  }
   if (!isInput) {
     // Draw the node's bias.
     nodeGroup.append("rect")
@@ -489,6 +496,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
       }).on("mouseleave", function() {
         updateHoverCard(null);
       });
+    nodeGroup.classed(nonInputActiveOrInactive, true);
   }
 
   // Draw the node's canvas.
@@ -517,16 +525,25 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
       heatMap.updateBackground(boundary[nn.getOutputNode(network).id],
           state.discretize);
     });
+  div.style("cursor", "pointer");
   if (isInput) {
     div.on("click", function() {
       state[nodeId] = !state[nodeId];
       parametersChanged = true;
       reset();
     });
-    div.style("cursor", "pointer");
+  }
+  if (!isInput) {
+    div.on("click", function() {
+      node.enabled = !node.enabled;
+      updateUI(false /* firstStep */, true /* updateNetwork */);
+    });
   }
   if (isInput) {
     div.classed(activeOrNotClass, true);
+  }
+  if (!isInput) {
+    div.classed(nonInputActiveOrInactive, true);
   }
   let nodeHeatMap = new HeatMap(RECT_SIZE, DENSITY / 10, xDomain,
       xDomain, div, {noSvg: true});
@@ -710,27 +727,37 @@ function updateHoverCard(type: HoverType, nodeOrLink?: nn.Node | nn.Link,
     d3.select("#svg").on("click", null);
     return;
   }
-  d3.select("#svg").on("click", () => {
-    hovercard.select(".value").style("display", "none");
-    let input = hovercard.select("input");
-    input.style("display", null);
-    input.on("input", function() {
-      if (this.value != null && this.value !== "") {
-        if (type === HoverType.WEIGHT) {
-          (nodeOrLink as nn.Link).weight = +this.value;
-        } else {
-          (nodeOrLink as nn.Node).bias = +this.value;
+  let linkEnabled = false;
+  // if the source or dest node of the link disabled, then the link should also be
+  // disabled.
+  if ((type === HoverType.WEIGHT && (nodeOrLink as nn.Link).dest.enabled
+                                 && (nodeOrLink as nn.Link).source.enabled) ||
+      (type === HoverType.BIAS) && (nodeOrLink as nn.Node).enabled) {
+    linkEnabled = true;
+  }
+  if (linkEnabled) {
+    d3.select("#svg").on("click", () => {
+      hovercard.select(".value").style("display", "none");
+      let input = hovercard.select("input");
+      input.style("display", null);
+      input.on("input", function() {
+        if (this.value != null && this.value !== "") {
+          if (type === HoverType.WEIGHT) {
+            (nodeOrLink as nn.Link).weight = +this.value;
+          } else {
+            (nodeOrLink as nn.Node).bias = +this.value;
+          }
+          updateUI();
         }
-        updateUI();
-      }
+      });
+      input.on("keypress", () => {
+        if ((d3.event as any).keyCode === 13) {
+          updateHoverCard(type, nodeOrLink, coordinates);
+        }
+      });
+      (input.node() as HTMLInputElement).focus();
     });
-    input.on("keypress", () => {
-      if ((d3.event as any).keyCode === 13) {
-        updateHoverCard(type, nodeOrLink, coordinates);
-      }
-    });
-    (input.node() as HTMLInputElement).focus();
-  });
+  }
   let value = (type === HoverType.WEIGHT) ?
     (nodeOrLink as nn.Link).weight :
     (nodeOrLink as nn.Node).bias;
@@ -740,6 +767,11 @@ function updateHoverCard(type: HoverType, nodeOrLink?: nn.Node | nn.Link,
     "top": `${coordinates[1]}px`,
     "display": "block"
   });
+  if (linkEnabled) {
+    hovercard.select(".hovercard-prompt").text("Click anywhere to edit.");
+  } else {
+    hovercard.select(".hovercard-prompt").text("Connecting node is disabled, cannot edit.");
+  }
   hovercard.select(".type").text(name);
   hovercard.select(".value")
     .style("display", null)
@@ -848,7 +880,10 @@ function getLoss(network: nn.Node[][], dataPoints: Example2D[]): number {
   return loss / dataPoints.length;
 }
 
-function updateUI(firstStep = false) {
+function updateUI(firstStep = false, updateNetwork = false) {
+  if (updateNetwork) {
+    drawNetwork(network);
+  }
   // Update the links visually.
   updateWeightsUI(network, d3.select("g.core"));
   // Update the bias values visually.

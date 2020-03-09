@@ -20,6 +20,7 @@ limitations under the License.
  */
 export class Node {
   id: string;
+  enabled: boolean;
   /** List of input links. */
   inputLinks: Link[] = [];
   bias = 0.1;
@@ -48,8 +49,13 @@ export class Node {
   /**
    * Creates a new node with the provided id and activation function.
    */
-  constructor(id: string, activation: ActivationFunction, initZero?: boolean) {
+  constructor(
+      id: string,
+      activation: ActivationFunction,
+      initZero?: boolean,
+      enabled: boolean = true) {
     this.id = id;
+    this.enabled = enabled;
     this.activation = activation;
     if (initZero) {
       this.bias = 0;
@@ -294,6 +300,9 @@ export function backProp(network: Node[][], target: number,
     // 2) each of its input weights.
     for (let i = 0; i < currentLayer.length; i++) {
       let node = currentLayer[i];
+      if (!node.enabled) {
+        continue;
+      }
       node.inputDer = node.outputDer * node.activation.der(node.totalInput);
       node.accInputDer += node.inputDer;
       node.numAccumulatedDers++;
@@ -302,9 +311,12 @@ export function backProp(network: Node[][], target: number,
     // Error derivative with respect to each weight coming into the node.
     for (let i = 0; i < currentLayer.length; i++) {
       let node = currentLayer[i];
+      if (!node.enabled) {
+        continue;
+      }
       for (let j = 0; j < node.inputLinks.length; j++) {
         let link = node.inputLinks[j];
-        if (link.isDead) {
+        if (link.isDead || !link.source.enabled) {
           continue;
         }
         link.errorDer = node.inputDer * link.source.output;
@@ -318,6 +330,9 @@ export function backProp(network: Node[][], target: number,
     let prevLayer = network[layerIdx - 1];
     for (let i = 0; i < prevLayer.length; i++) {
       let node = prevLayer[i];
+      if (!node.enabled) {
+        continue;
+      }
       // Compute the error derivative with respect to each node's output.
       node.outputDer = 0;
       for (let j = 0; j < node.outputs.length; j++) {
@@ -338,6 +353,9 @@ export function updateWeights(network: Node[][], learningRate: number,
     let currentLayer = network[layerIdx];
     for (let i = 0; i < currentLayer.length; i++) {
       let node = currentLayer[i];
+      if (!node.enabled) {
+        continue;
+      }
       // Update the node's bias.
       if (node.numAccumulatedDers > 0) {
         node.bias -= learningRate * node.accInputDer / node.numAccumulatedDers;
