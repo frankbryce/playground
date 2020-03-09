@@ -536,7 +536,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
   if (!isInput) {
     div.on("click", function() {
       node.enabled = !node.enabled;
-      updateUI(false /* firstStep */, true /* updateNetwork */);
+      updateUI(false /* firstStep */, true /* updateNetwork */, false /* updateIter */);
     });
   }
   if (isInput) {
@@ -703,6 +703,7 @@ function addPlusMinusControl(x: number, layerIdx: number) {
       .on("click", () => {
         let numNeurons = state.networkShape[i];
         if (numNeurons <= 1) {
+          // TODO: tie previous layer to next layer
           return;
         }
         state.networkShape[i]--;
@@ -880,7 +881,7 @@ function getLoss(network: nn.Node[][], dataPoints: Example2D[]): number {
   return loss / dataPoints.length;
 }
 
-function updateUI(firstStep = false, updateNetwork = false) {
+function updateUI(firstStep = false, updateNetwork = false, updateIter = true) {
   if (updateNetwork) {
     drawNetwork(network);
   }
@@ -917,7 +918,9 @@ function updateUI(firstStep = false, updateNetwork = false) {
   // Update loss and iteration number.
   d3.select("#loss-train").text(humanReadable(lossTrain));
   d3.select("#loss-test").text(humanReadable(lossTest));
-  d3.select("#iter-number").text(addCommas(zeroPad(iter)));
+  if (updateIter) {
+    d3.select("#iter-number").text(addCommas(zeroPad(iter)));
+  }
   lineChart.addDataPoint([lossTrain, lossTest]);
 }
 
