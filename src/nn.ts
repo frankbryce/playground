@@ -354,6 +354,16 @@ export function updateWeights(network: Node[][], learningRate: number,
     for (let i = 0; i < currentLayer.length; i++) {
       let node = currentLayer[i];
       if (!node.enabled) {
+        node.accInputDer = 0;
+        node.numAccumulatedDers = 0;
+        for (let j = 0; j < node.inputLinks.length; j++) {
+          node.inputLinks[j].accErrorDer = 0;
+          node.inputLinks[j].numAccumulatedDers = 0;
+        }
+        for (let j = 0; j < node.outputs.length; j++) {
+          node.outputs[j].accErrorDer = 0;
+          node.outputs[j].numAccumulatedDers = 0;
+        }
         continue;
       }
       // Update the node's bias.
