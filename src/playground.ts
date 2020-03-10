@@ -713,8 +713,12 @@ function addPlusMinusControl(x: number, layerIdx: number) {
         networkLock.writeLock(function(release) {
           try {
             let nnLayerIdx = i+1;
+            let findNextIdx = () => {
+              let layer = network[nnLayerIdx];
+              return +layer[layer.length-1].id.split("_")[1]+1;
+            };
             let mkIdx = network[nnLayerIdx].length;
-            let mkNodeId = nnLayerIdx.toString() + "_" + mkIdx.toString();
+            let mkNodeId = nnLayerIdx.toString() + "_" + findNextIdx().toString();
             let mkNode = new nn.Node(mkNodeId, state.activation, state.initZero);
             network[nnLayerIdx].push(mkNode);
             for (let j = 0; j < network[nnLayerIdx-1].length; j++) {
@@ -750,7 +754,18 @@ function addPlusMinusControl(x: number, layerIdx: number) {
         networkLock.writeLock(function(release) {
           try {
             let nnLayerIdx = i+1;
-            let rmIdx = network[nnLayerIdx].length-1;
+            let findRmIdx = () => {
+              // default to the last node if there is no disabled nodes.
+              let ret = network[nnLayerIdx].length-1;
+              for (let j = 0; j < network[nnLayerIdx].length; j++) {
+                if (!network[nnLayerIdx][j].enabled) {
+                  ret = j;
+                  break;
+                }
+              }
+              return ret;
+            };
+            let rmIdx = findRmIdx();
             let rmNode = network[nnLayerIdx][rmIdx];
             for (let j = 0; j < rmNode.outputs.length; j++) {
               let rmLink = rmNode.outputs[j].dest.inputLinks.splice(rmIdx, 1);
