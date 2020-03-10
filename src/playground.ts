@@ -28,6 +28,7 @@ import {
 import {Example2D, shuffle} from "./dataset";
 import {AppendingLineChart} from "./linechart";
 import * as d3 from 'd3';
+import * as ReadWriteLock from 'rwlock';
 
 let mainWidth;
 
@@ -170,6 +171,7 @@ let iter = 0;
 let trainData: Example2D[] = [];
 let testData: Example2D[] = [];
 let network: nn.Node[][] = null;
+const networkLock = new ReadWriteLock();
 let lossTrain = 0;
 let lossTest = 0;
 let player = new Player();
@@ -382,7 +384,13 @@ function makeGUI() {
         .getBoundingClientRect().width;
     if (newWidth !== mainWidth) {
       mainWidth = newWidth;
-      drawNetwork(network);
+      networkLock.readLock(function(release) {
+        try {
+          drawNetwork(network);
+        } finally {
+          release();
+        }
+      });
       updateUI(true);
     }
   });
@@ -514,16 +522,28 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
       selectedNodeId = nodeId;
       div.classed("hovered", true);
       nodeGroup.classed("hovered", true);
-      updateDecisionBoundary(network, false);
+      networkLock.readLock(function(release) {
+        try {
+          updateDecisionBoundary(network, false);
+        } finally {
+          release();
+        }
+      });
       heatMap.updateBackground(boundary[nodeId], state.discretize);
     })
     .on("mouseleave", function() {
       selectedNodeId = null;
       div.classed("hovered", false);
       nodeGroup.classed("hovered", false);
-      updateDecisionBoundary(network, false);
-      heatMap.updateBackground(boundary[nn.getOutputNode(network).id],
-          state.discretize);
+      networkLock.readLock(function(release) {
+        try {
+          updateDecisionBoundary(network, false);
+          heatMap.updateBackground(boundary[nn.getOutputNode(network).id],
+              state.discretize);
+        } finally {
+          release();
+        }
+      });
     });
   div.style("cursor", "pointer");
   if (isInput) {
@@ -707,6 +727,9 @@ function addPlusMinusControl(x: number, layerIdx: number) {
           return;
         }
         state.networkShape[i]--;
+        // TODO: dynamically modify network without a reset
+        // network[i].pop();
+        // updateUI(false /*firstStep*/, true /*updateNetwork*/, false /*updateIter*/);
         parametersChanged = true;
         reset();
       })
@@ -882,18 +905,24 @@ function getLoss(network: nn.Node[][], dataPoints: Example2D[]): number {
 }
 
 function updateUI(firstStep = false, updateNetwork = false, updateIter = true) {
-  if (updateNetwork) {
-    drawNetwork(network);
-  }
-  // Update the links visually.
-  updateWeightsUI(network, d3.select("g.core"));
-  // Update the bias values visually.
-  updateBiasesUI(network);
-  // Get the decision boundary of the network.
-  updateDecisionBoundary(network, firstStep);
-  let selectedId = selectedNodeId != null ?
-      selectedNodeId : nn.getOutputNode(network).id;
-  heatMap.updateBackground(boundary[selectedId], state.discretize);
+  networkLock.readLock(function(release) {
+    try {
+      if (updateNetwork) {
+        drawNetwork(network);
+      }
+      // Update the links visually.
+      updateWeightsUI(network, d3.select("g.core"));
+      // Update the bias values visually.
+      updateBiasesUI(network);
+      // Get the decision boundary of the network.
+      updateDecisionBoundary(network, firstStep);
+      let selectedId = selectedNodeId != null ?
+          selectedNodeId : nn.getOutputNode(network).id;
+      heatMap.updateBackground(boundary[selectedId], state.discretize);
+    } finally {
+      release();
+    }
+  });
 
   // Update all decision boundaries.
   d3.select("#network").selectAll("div.canvas")
@@ -945,18 +974,24 @@ function constructInput(x: number, y: number): number[] {
 }
 
 function oneStep(): void {
-  iter++;
-  trainData.forEach((point, i) => {
-    let input = constructInput(point.x, point.y);
-    nn.forwardProp(network, input);
-    nn.backProp(network, point.label, nn.Errors.SQUARE);
-    if ((i + 1) % state.batchSize === 0) {
-      nn.updateWeights(network, state.learningRate, state.regularizationRate);
+  networkLock.readLock(function(release) {
+    try {
+      iter++;
+      trainData.forEach((point, i) => {
+        let input = constructInput(point.x, point.y);
+        nn.forwardProp(network, input);
+        nn.backProp(network, point.label, nn.Errors.SQUARE);
+        if ((i + 1) % state.batchSize === 0) {
+          nn.updateWeights(network, state.learningRate, state.regularizationRate);
+        }
+      });
+      // Compute the loss.
+      lossTrain = getLoss(network, trainData);
+      lossTest = getLoss(network, testData);
+    } finally {
+      release();
     }
   });
-  // Compute the loss.
-  lossTrain = getLoss(network, trainData);
-  lossTest = getLoss(network, testData);
   updateUI();
 }
 
@@ -993,11 +1028,23 @@ function reset(onStartup=false) {
   let shape = [numInputs].concat(state.networkShape).concat([1]);
   let outputActivation = (state.problem === Problem.REGRESSION) ?
       nn.Activations.LINEAR : nn.Activations.TANH;
-  network = nn.buildNetwork(shape, state.activation, outputActivation,
-      state.regularization, constructInputIds(), state.initZero);
-  lossTrain = getLoss(network, trainData);
-  lossTest = getLoss(network, testData);
-  drawNetwork(network);
+  networkLock.writeLock(function(release) {
+    try {
+      network = nn.buildNetwork(shape, state.activation, outputActivation,
+          state.regularization, constructInputIds(), state.initZero);
+    } finally {
+      release();
+    }
+  });
+  networkLock.readLock(function(release) {
+    try {
+      lossTrain = getLoss(network, trainData);
+      lossTest = getLoss(network, testData);
+      drawNetwork(network);
+    } finally {
+      release();
+    }
+  });
   updateUI(true);
 };
 
