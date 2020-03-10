@@ -726,12 +726,34 @@ function addPlusMinusControl(x: number, layerIdx: number) {
           // TODO: tie previous layer to next layer
           return;
         }
-        state.networkShape[i]--;
-        // TODO: dynamically modify network without a reset
-        // network[i].pop();
-        // updateUI(false /*firstStep*/, true /*updateNetwork*/, false /*updateIter*/);
-        parametersChanged = true;
-        reset();
+        networkLock.writeLock(function(release) {
+          try {
+            let nnLayerIdx = i+1;
+            let rmIdx = network[nnLayerIdx].length-1;
+            let rmNode = network[nnLayerIdx][rmIdx];
+            for (let j = 0; j < rmNode.outputs.length; j++) {
+              let rmLink = rmNode.outputs[j].dest.inputLinks.splice(rmIdx, 1);
+              if (rmLink[0] !== rmNode.outputs[j]) {
+                alert("Removed wrong Link due to mismatched indices: " + rmLink[0].id + " != " + rmNode.outputs[j].id);
+              }
+            }
+            for (let j = 0; j < rmNode.inputLinks.length; j++) {
+              let rmLink = rmNode.inputLinks[j].source.outputs.splice(rmIdx, 1);
+              if (rmLink[0] !== rmNode.inputLinks[j]) {
+                alert("Removed wrong Link due to mismatched indices: " + rmLink[0].id + " != " + rmNode.inputLinks[j].id);
+              }
+            }
+            state.networkShape[i]--;
+            parametersChanged = true;
+            let rmNodeActual = network[nnLayerIdx].splice(rmIdx, 1);
+            if (rmNodeActual[0] !== rmNode) {
+              alert("Removed wrong Node: " + rmNodeActual[0].id + " != " + rmNode.id);
+            }
+          } finally {
+            release();
+          }
+        });
+        updateUI(false /*firstStep*/, true /*updateNetwork*/, false /*updateIter*/);
       })
     .append("i")
       .attr("class", "material-icons")
