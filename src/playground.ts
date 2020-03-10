@@ -19,7 +19,6 @@ import {
   State,
   datasets,
   regDatasets,
-  activations,
   problems,
   regularizations,
   getKeyFromValue,
@@ -80,7 +79,6 @@ let HIDABLE_CONTROLS = [
   ["Step button", "stepButton"],
   ["Reset button", "resetButton"],
   ["Learning rate", "learningRate"],
-  ["Activation", "activation"],
   ["Regularization", "regularization"],
   ["Regularization rate", "regularizationRate"],
   ["Problem type", "problem"],
@@ -324,13 +322,8 @@ function makeGUI() {
   batchSize.property("value", state.batchSize);
   d3.select("label[for='batchSize'] .value").text(state.batchSize);
 
-  let activationDropdown = d3.select("#activations").on("change", function() {
-    state.activation = activations[this.value];
-    parametersChanged = true;
-    reset();
-  });
-  activationDropdown.property("value",
-      getKeyFromValue(activations, state.activation));
+  // hardcode this for now.  Should clean this up in state.ts
+  state.activation = nn.Activations.RELU;
 
   let learningRate = d3.select("#learningRate").on("change", function() {
     state.learningRate = +this.value;
