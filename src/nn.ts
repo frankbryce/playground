@@ -213,7 +213,6 @@ export function buildNetwork(
     regularization: RegularizationFunction,
     inputIds: string[], initZero?: boolean): Node[][] {
   let numLayers = networkShape.length;
-  let id = 1;
   /** List of layers, with each layer being a list of nodes. */
   let network: Node[][] = [];
   for (let layerIdx = 0; layerIdx < numLayers; layerIdx++) {
@@ -223,11 +222,9 @@ export function buildNetwork(
     network.push(currentLayer);
     let numNodes = networkShape[layerIdx];
     for (let i = 0; i < numNodes; i++) {
-      let nodeId = id.toString();
+      let nodeId = layerIdx.toString() + "_" + i.toString();
       if (isInputLayer) {
         nodeId = inputIds[i];
-      } else {
-        id++;
       }
       let node = new Node(nodeId,
           isOutputLayer ? outputActivation : activation, initZero);

@@ -556,7 +556,7 @@ function drawNode(cx: number, cy: number, nodeId: string, isInput: boolean,
   if (!isInput) {
     div.on("click", function() {
       node.enabled = !node.enabled;
-      updateUI(false /* firstStep */, true /* updateNetwork */, false /* updateIter */);
+      updateUI(true /* updateNetwork */, false /* updateIter */);
     });
   }
   if (isInput) {
@@ -710,9 +710,30 @@ function addPlusMinusControl(x: number, layerIdx: number) {
         if (numNeurons >= 8) {
           return;
         }
-        state.networkShape[i]++;
-        parametersChanged = true;
-        reset();
+        networkLock.writeLock(function(release) {
+          try {
+            let nnLayerIdx = i+1;
+            let mkIdx = network[nnLayerIdx].length;
+            let mkNodeId = nnLayerIdx.toString() + "_" + mkIdx.toString();
+            let mkNode = new nn.Node(mkNodeId, state.activation, state.initZero);
+            network[nnLayerIdx].push(mkNode);
+            for (let j = 0; j < network[nnLayerIdx-1].length; j++) {
+              let mkLink = new nn.Link(network[nnLayerIdx-1][j], mkNode, state.regularization, state.initZero);
+              network[nnLayerIdx-1][j].outputs.push(mkLink);
+              network[nnLayerIdx][mkIdx].inputLinks.push(mkLink);
+            }
+            for (let j = 0; j < network[nnLayerIdx+1].length; j++) {
+              let mkLink = new nn.Link(mkNode, network[nnLayerIdx+1][j], state.regularization, state.initZero);
+              network[nnLayerIdx+1][j].inputLinks.push(mkLink);
+              network[nnLayerIdx][mkIdx].outputs.push(mkLink);
+            }
+            state.networkShape[i]++;
+            parametersChanged = true;
+          } finally {
+            release();
+          }
+        });
+        updateUI(true /*updateNetwork*/, false /*updateIter*/);
       })
     .append("i")
       .attr("class", "material-icons")
@@ -753,7 +774,7 @@ function addPlusMinusControl(x: number, layerIdx: number) {
             release();
           }
         });
-        updateUI(false /*firstStep*/, true /*updateNetwork*/, false /*updateIter*/);
+        updateUI(true /*updateNetwork*/, false /*updateIter*/);
       })
     .append("i")
       .attr("class", "material-icons")
@@ -871,8 +892,8 @@ function drawLink(
  * It returns a map where each key is the node ID and the value is a square
  * matrix of the outputs of the network for each input in the grid respectively.
  */
-function updateDecisionBoundary(network: nn.Node[][], firstTime: boolean) {
-  if (firstTime) {
+function updateDecisionBoundary(network: nn.Node[][], updateNetwork: boolean) {
+  if (updateNetwork) {
     boundary = {};
     nn.forEachNode(network, true, node => {
       boundary[node.id] = new Array(DENSITY);
@@ -887,7 +908,7 @@ function updateDecisionBoundary(network: nn.Node[][], firstTime: boolean) {
 
   let i = 0, j = 0;
   for (i = 0; i < DENSITY; i++) {
-    if (firstTime) {
+    if (updateNetwork) {
       nn.forEachNode(network, true, node => {
         boundary[node.id][i] = new Array(DENSITY);
       });
@@ -905,7 +926,7 @@ function updateDecisionBoundary(network: nn.Node[][], firstTime: boolean) {
       nn.forEachNode(network, true, node => {
         boundary[node.id][i][j] = node.output;
       });
-      if (firstTime) {
+      if (updateNetwork) {
         // Go through all predefined inputs.
         for (let nodeId in INPUTS) {
           boundary[nodeId][i][j] = INPUTS[nodeId].f(x, y);
@@ -926,7 +947,7 @@ function getLoss(network: nn.Node[][], dataPoints: Example2D[]): number {
   return loss / dataPoints.length;
 }
 
-function updateUI(firstStep = false, updateNetwork = false, updateIter = true) {
+function updateUI(updateNetwork = false, updateIter = true) {
   networkLock.readLock(function(release) {
     try {
       if (updateNetwork) {
@@ -937,7 +958,7 @@ function updateUI(firstStep = false, updateNetwork = false, updateIter = true) {
       // Update the bias values visually.
       updateBiasesUI(network);
       // Get the decision boundary of the network.
-      updateDecisionBoundary(network, firstStep);
+      updateDecisionBoundary(network, updateNetwork);
       let selectedId = selectedNodeId != null ?
           selectedNodeId : nn.getOutputNode(network).id;
       heatMap.updateBackground(boundary[selectedId], state.discretize);
