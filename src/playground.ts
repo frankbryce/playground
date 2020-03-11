@@ -845,7 +845,7 @@ function updateHoverCard(type: HoverType, nodeOrLink?: nn.Node | nn.Link,
   if (linkEnabled) {
     hovercard.select(".hovercard-prompt").text("Click anywhere to edit.");
   } else {
-    hovercard.select(".hovercard-prompt").text("Connecting node is disabled, cannot edit.");
+    hovercard.select(".hovercard-prompt").text("Disabled, cannot edit.");
   }
   hovercard.select(".type").text(name);
   hovercard.select(".value")
