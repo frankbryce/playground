@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "removeComments": true,
+    "lib": ["dom", "es2015"],
     "preserveConstEnums": true
   },
   "exclude": [
