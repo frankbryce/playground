@@ -99,11 +99,11 @@ body {
   color: rgba(0, 0, 0, 0.7);
 }
 
-#ui-layer-edit-num span {
-  margin-right: 10px;
+#main-part #ui-layer-edit-num {
+  margin: 10px;
 }
 
-#ui-layer-edit-num input {
+#main-part #ui-layer-edit-num input {
   width: 60px;
 }
 
