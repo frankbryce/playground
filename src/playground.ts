@@ -175,8 +175,10 @@ const networkLock = new ReadWriteLock();
 let lossTrain = 0;
 let lossTest = 0;
 let player = new Player();
-let lineChart = new AppendingLineChart(d3.select("#linechart"),
-    ["#777", "black"]);
+let trainLossLineChart = new AppendingLineChart(d3.select("#train-loss-ts"),
+    ["black"]);
+let testLossLineChart = new AppendingLineChart(d3.select("#test-loss-ts"),
+    ["black"]);
 
 function makeGUI() {
   d3.select("#reset-button").on("click", () => {
@@ -600,12 +602,6 @@ function drawNetwork(network: nn.Node[][]): void {
       .rangePoints([featureWidth, width - RECT_SIZE], 0.7);
   let nodeIndexScale = (nodeIndex: number) => nodeIndex * (RECT_SIZE + 25);
 
-
-  let calloutThumb = d3.select(".callout.thumbnail").style("display", "none");
-  let calloutWeights = d3.select(".callout.weights").style("display", "none");
-  let idWithCallout = null;
-  let targetIdWithCallout = null;
-
   // Draw the input layer separately.
   let cx = RECT_SIZE / 2 + 50;
   let nodeIds = Object.keys(INPUTS);
@@ -628,42 +624,13 @@ function drawNetwork(network: nn.Node[][]): void {
       node2coord[node.id] = {cx, cy};
       drawNode(cx, cy, node.id, false, container, node);
 
-      // Show callout to thumbnails.
-      let numNodes = network[layerIdx].length;
-      let nextNumNodes = network[layerIdx + 1].length;
-      if (idWithCallout == null &&
-          i === numNodes - 1 &&
-          nextNumNodes <= numNodes) {
-        calloutThumb.style({
-          display: null,
-          top: `${20 + 3 + cy}px`,
-          left: `${cx}px`
-        });
-        idWithCallout = node.id;
-      }
-
       // Draw links.
       for (let j = 0; j < node.inputLinks.length; j++) {
         let link = node.inputLinks[j];
         let path: SVGPathElement = drawLink(link, node2coord, network,
             container, j === 0, j, node.inputLinks.length).node() as any;
-        // Show callout to weights.
         let prevLayer = network[layerIdx - 1];
         let lastNodePrevLayer = prevLayer[prevLayer.length - 1];
-        if (targetIdWithCallout == null &&
-            i === numNodes - 1 &&
-            link.source.id === lastNodePrevLayer.id &&
-            (link.source.id !== idWithCallout || numLayers <= 5) &&
-            link.dest.id !== idWithCallout &&
-            prevLayer.length >= numNodes) {
-          let midPoint = path.getPointAtLength(path.getTotalLength() * 0.7);
-          calloutWeights.style({
-            display: null,
-            top: `${midPoint.y + 5}px`,
-            left: `${midPoint.x + 3}px`
-          });
-          targetIdWithCallout = link.dest.id;
-        }
       }
     }
   }
@@ -683,11 +650,7 @@ function drawNetwork(network: nn.Node[][]): void {
   svg.attr("height", maxY);
 
   // Adjust the height of the features column.
-  let height = Math.max(
-    getRelativeHeight(calloutThumb),
-    getRelativeHeight(calloutWeights),
-    getRelativeHeight(d3.select("#network"))
-  );
+  let height = getRelativeHeight(d3.select("#network"));
   d3.select(".column.features").style("height", height + "px");
 }
 
@@ -1003,12 +966,13 @@ function updateUI(updateNetwork = false, updateIter = true) {
   }
 
   // Update loss and iteration number.
-  d3.select("#loss-train").text(humanReadable(lossTrain));
-  d3.select("#loss-test").text(humanReadable(lossTest));
   if (updateIter) {
     d3.select("#iter-number").text(addCommas(zeroPad(iter)));
   }
-  lineChart.addDataPoint([lossTrain, lossTest]);
+  d3.select("#loss-train").text(humanReadable(lossTrain));
+  trainLossLineChart.addDataPoint([lossTrain]);
+  d3.select("#loss-test").text(humanReadable(lossTest));
+  testLossLineChart.addDataPoint([lossTest]);
 }
 
 function constructInputIds(): string[] {
@@ -1069,7 +1033,7 @@ export function getOutputWeights(network: nn.Node[][]): number[] {
 }
 
 function reset(onStartup=false) {
-  lineChart.reset();
+  trainLossLineChart.reset();
   state.serialize();
   if (!onStartup) {
     userHasInteracted();

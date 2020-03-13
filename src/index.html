@@ -131,7 +131,7 @@ limitations under the License.
   </div>
 
   <!-- Main Part -->
-  <div id="main-part" class="l--page">
+  <div class="main-part l--page">
 
     <!--  Data Column-->
     <div class="column data">
@@ -203,32 +203,6 @@ limitations under the License.
           <div class="hovercard-prompt" style="font-size:10px">Click anywhere to edit.</div>
           <div><span class="type">Weight/Bias</span> is <span class="value">0.2</span><span><input type="number"/></span>.</div>
         </div>
-        <div class="callout thumbnail">
-          <svg viewBox="0 0 30 30">
-            <defs>
-              <marker id="arrow" markerWidth="5" markerHeight="5" refx="5" refy="2.5" orient="auto" markerUnits="userSpaceOnUse">
-                <path d="M0,0 L5,2.5 L0,5 z"/>
-              </marker>
-            </defs>
-            <path d="M12,30C5,20 2,15 12,0" marker-end="url(#arrow)">
-          </svg>
-          <div class="label">
-            This is the output from one <b>neuron</b>. Hover to see it larger.
-          </div>
-        </div>
-        <div class="callout weights">
-          <svg viewBox="0 0 30 30">
-            <defs>
-              <marker id="arrow" markerWidth="5" markerHeight="5" refx="5" refy="2.5" orient="auto" markerUnits="userSpaceOnUse">
-                <path d="M0,0 L5,2.5 L0,5 z"/>
-              </marker>
-            </defs>
-            <path d="M12,30C5,20 2,15 12,0" marker-end="url(#arrow)">
-          </svg>
-          <div class="label">
-            The outputs are mixed with varying <b>weights</b>, shown by the thickness of the lines.
-          </div>
-        </div>
       </div>
     </div>
 
@@ -252,21 +226,9 @@ limitations under the License.
     <!-- Output Column -->
     <div class="column output">
       <h4>Output</h4>
-      <div class="metrics">
-        <div class="output-stats ui-percTrainData">
-          <span>Test loss</span>
-          <div class="value" id="loss-test"></div>
-        </div>
-        <div class="output-stats train">
-          <span>Training loss</span>
-          <div class="value" id="loss-train"></div>
-        </div>
-        <div id="linechart"></div>
-      </div>
       <div id="heatmap"></div>
       <div style="float:left;margin-top:20px">
         <div style="display:flex; align-items:center;">
-
           <!-- Gradient color scale -->
           <div class="label" style="width:105px; margin-right: 10px">
             Colors shows data, neuron and weight values.
@@ -297,9 +259,30 @@ limitations under the License.
         </div>
       </div>
     </div>
-
   </div>
 
+  <div class="main-part l--page">
+    <div class="ts-graphs">
+      <div class="ts-graph">
+        <div class="metric output-stats train">
+          <span>Training loss:</span>
+          <span class="value" id="loss-train"></span>
+        </div>
+        <div id="train-loss-ts" class="linechart"></div>
+      </div>
+      <div class="ts-graph">
+        <div class="metric output-stats ui-percTrainData">
+          <span>Test loss:</span>
+          <span class="value" id="loss-test"></span>
+        </div>
+        <div id="test-loss-ts" class="linechart"></div>
+      </div>
+    </div>
+    <div class="save-load-pane">
+      <h4>Graphs</h4>
+      <div>SAVE/LOAD</div>
+    </div>
+  </div>
   <!-- Footer -->
   <footer>
     <div class="l--body">
