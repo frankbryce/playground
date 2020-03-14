@@ -263,19 +263,33 @@ limitations under the License.
 
   <div class="main-part l--page">
     <div class="ts-graphs">
-      <div class="ts-graph">
+      <div class="ts-graph" id="train-loss-ts">
         <div class="metric output-stats train">
           <span>Training loss:</span>
           <span class="value" id="loss-train"></span>
         </div>
-        <div id="train-loss-ts" class="linechart"></div>
+        <div class="ts-graph-axes-chart">
+          <div class="ts-graph-axis-labels">
+            <div class="ymax"></div>
+            <div></div>
+            <div class="ymin"></div>
+          </div>
+          <div class="linechart"></div>
+        </div>
       </div>
-      <div class="ts-graph">
+      <div class="ts-graph" id="test-loss-ts">
         <div class="metric output-stats ui-percTrainData">
           <span>Test loss:</span>
           <span class="value" id="loss-test"></span>
         </div>
-        <div id="test-loss-ts" class="linechart"></div>
+        <div class="ts-graph-axes-chart">
+          <div class="ts-graph-axis-labels">
+            <div class="ymax"></div>
+            <div></div>
+            <div class="ymin"></div>
+          </div>
+          <div class="linechart"></div>
+        </div>
       </div>
     </div>
     <div class="save-load-pane">

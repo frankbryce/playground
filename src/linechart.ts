@@ -34,11 +34,14 @@ export class AppendingLineChart {
   private lineColors: string[];
 
   private minY = Number.MAX_VALUE;
+  private yMinElement;
   private maxY = Number.MIN_VALUE;
+  private yMaxElement;
 
-  constructor(container, lineColors: string[]) {
+  constructor(tsGraph, lineColors: string[]) {
     this.lineColors = lineColors;
     this.numLines = lineColors.length;
+    let container = tsGraph.select(".ts-graph-axes-chart .linechart");
     let node = container.node() as HTMLElement;
     let totalWidth = node.offsetWidth;
     let totalHeight = node.offsetHeight;
@@ -60,6 +63,9 @@ export class AppendingLineChart {
       .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
+    this.yMinElement = tsGraph.select(".ts-graph-axes-chart .ts-graph-axis-labels .ymin");
+    this.yMaxElement = tsGraph.select(".ts-graph-axes-chart .ts-graph-axis-labels .ymax");
+
     this.paths = new Array(this.numLines);
     for (let i = 0; i < this.numLines; i++) {
       this.paths[i] = this.svg.append("path")
@@ -75,8 +81,10 @@ export class AppendingLineChart {
   reset() {
     this.data = [];
     this.redraw();
-    this.minY = Number.MAX_VALUE;
     this.maxY = Number.MIN_VALUE;
+    this.yMinElement.text("");
+    this.minY = Number.MAX_VALUE;
+    this.yMaxElement.text("");
   }
 
   addDataPoint(dataPoint: number[]) {
@@ -85,7 +93,9 @@ export class AppendingLineChart {
     }
     dataPoint.forEach(y => {
       this.minY = Math.min(this.minY, y);
+      this.yMinElement.text(this.minY.toExponential(2));
       this.maxY = Math.max(this.maxY, y);
+      this.yMaxElement.text(this.maxY.toExponential(2));
     });
 
     this.data.push({x: this.data.length + 1, y: dataPoint});

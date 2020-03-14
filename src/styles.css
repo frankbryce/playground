@@ -437,8 +437,21 @@ header h1 .optional {
   text-align: center;
 }
 
-.linechart {
+.ts-graph-axes-chart {
   margin: 0 5% 5% 5%;
+  display: grid;
+  grid-template-columns: 50px auto;
+}
+
+.ts-graph-axis-labels {
+  display: grid;
+  grid-template-rows: 10px auto 10px;
+  min-height: 100px;
+}
+
+.linechart {
+  margin-top: 10px;
+  martin-bottom: -2px;
   background-color: #0001;
   min-height: 100px;`
 }
