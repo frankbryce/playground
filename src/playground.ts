@@ -180,6 +180,33 @@ Chart.scaleService.updateScaleDefaults('linear', {
     min: 0,
   },
 });
+let constructOptions = (yAxisLabel: string, stacked: boolean, type: string = 'linear') => {
+  return {
+    scales: {
+      xAxes: [{
+        type: 'linear',
+        display: true,
+        scaleLabel: {
+          display: true,
+          labelString: 'Epochs',
+        },
+      }],
+      yAxes: [{
+        display: true,
+        type: type,
+        scales: {
+          yAxes: [{
+            stacked: stacked,
+          }],
+        },
+        scaleLabel: {
+          display: true,
+          labelString: 'Computed Loss',
+        },
+      }],
+    },
+  };
+};
 let lossChart = new Chart(document.getElementById("loss-chart"), {
   type: 'line',
   data: {
@@ -203,58 +230,14 @@ let lossChart = new Chart(document.getElementById("loss-chart"), {
       clip: 0,
     }],
   },
-
-  options: {
-    scales: {
-      xAxes: [{
-        type: 'linear',
-        display: true,
-        scaleLabel: {
-          display: true,
-          labelString: 'Epochs',
-        },
-      }],
-      yAxes: [{
-        display: true,
-        scaleLabel: {
-          display: true,
-          labelString: 'Computed Loss',
-        },
-      }],
-    },
-  }
+  options: constructOptions('Calculated Loss', false),
 });
-
 let nnShapeChart = new Chart(document.getElementById("nn-shape-chart"), {
   type: 'line',
   data: {
     datasets: [],
   },
-
-  options: {
-    scales: {
-      xAxes: [{
-        type: 'linear',
-        display: true,
-        scaleLabel: {
-          display: true,
-          labelString: 'Epochs',
-        },
-      }],
-      yAxes: [{
-        display: true,
-        scales: {
-          yAxes: [{
-            stacked: true,
-          }],
-        },
-        scaleLabel: {
-          display: true,
-          labelString: 'Number of Neurons',
-        },
-      }],
-    },
-  }
+  options: constructOptions('Number of Neurons', true),
 });
 let constructShapeDataset = (layerIdx: number) => {
   let opacity = 0.9;
@@ -271,6 +254,21 @@ let constructShapeDataset = (layerIdx: number) => {
     pointHitRadius: 10,
   };
 };
+let learningRateChart = new Chart(document.getElementById("learning-rate-chart"), {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: 'Learning Rate',
+      backgroundColor: 'black',
+      borderColor: 'black',
+      data: [],
+      fill: false,
+      pointRadius: 0,
+      pointHitRadius: 10,
+    }],
+  },
+  options: constructOptions('Learning Rate', false, 'logarithmic'),
+});
 
 function makeGUI() {
   d3.select("#reset-button").on("click", () => {
@@ -1081,6 +1079,8 @@ function updateUI(updateNetwork = false, updateIter = true) {
     }
   });
   nnShapeChart.update({ duration: 0 });
+  learningRateChart.data.datasets[0].data.push({ x: iter, y: state.learningRate });
+  learningRateChart.update({ duration: 0 });
 }
 
 function constructInputIds(): string[] {
@@ -1146,6 +1146,8 @@ function reset(onStartup=false) {
   lossChart.reset();
   nnShapeChart.data.datasets = [];
   nnShapeChart.reset();
+  learningRateChart.data.datasets[0].data = [];
+  learningRateChart.reset();
   state.serialize();
   if (!onStartup) {
     userHasInteracted();
