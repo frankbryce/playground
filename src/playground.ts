@@ -1034,6 +1034,7 @@ export function getOutputWeights(network: nn.Node[][]): number[] {
 
 function reset(onStartup=false) {
   trainLossLineChart.reset();
+  testLossLineChart.reset();
   state.serialize();
   if (!onStartup) {
     userHasInteracted();
