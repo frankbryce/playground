@@ -26,7 +26,7 @@ import {
   Problem
 } from "./state";
 import {Example2D, shuffle} from "./dataset";
-import {AppendingLineChart} from "./linechart";
+import { Chart } from "chart.js";
 import * as d3 from 'd3';
 import * as ReadWriteLock from 'rwlock';
 
@@ -175,10 +175,55 @@ const networkLock = new ReadWriteLock();
 let lossTrain = 0;
 let lossTest = 0;
 let player = new Player();
-let trainLossLineChart = new AppendingLineChart(d3.select("#train-loss-ts"),
-    ["black"]);
-let testLossLineChart = new AppendingLineChart(d3.select("#test-loss-ts"),
-    ["black"]);
+Chart.scaleService.updateScaleDefaults('linear', {
+  ticks: {
+    min: 0,
+  },
+});
+let lossChart = new Chart(document.getElementById("loss-chart"), {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: 'Training Loss',
+      backgroundColor: 'rgb(8, 119, 189, 0.9)',
+      borderColor: 'rgb(8, 119, 189, 0.9)',
+      data: [], 
+      fill: false,
+      pointRadius: 0,
+      pointHitRadius: 10,
+      clip: 0,
+    }, {
+      label: 'Testing Loss',
+      backgroundColor: 'rgb(8, 119, 189, 0.3)',
+      borderColor: 'rgb(8, 119, 189, 0.3)',
+      data: [], 
+      fill: false,
+      pointRadius: 0,
+      pointHitRadius: 10,
+      clip: 0,
+    }],
+  },
+
+  options: {
+    scales: {
+      xAxes: [{
+        type: 'linear',
+        display: true,
+        scaleLabel: {
+          display: true,
+          labelString: 'Epochs',
+        },
+      }],
+      yAxes: [{
+        display: true,
+        scaleLabel: {
+          display: true,
+          labelString: 'Computed Loss',
+        },
+      }],
+    },
+  }
+});
 
 function makeGUI() {
   d3.select("#reset-button").on("click", () => {
@@ -969,10 +1014,9 @@ function updateUI(updateNetwork = false, updateIter = true) {
   if (updateIter) {
     d3.select("#iter-number").text(addCommas(zeroPad(iter)));
   }
-  d3.select("#loss-train").text(humanReadable(lossTrain));
-  trainLossLineChart.addDataPoint([lossTrain]);
-  d3.select("#loss-test").text(humanReadable(lossTest));
-  testLossLineChart.addDataPoint([lossTest]);
+  lossChart.data.datasets[0].data.push({x: iter, y: lossTrain});
+  lossChart.data.datasets[1].data.push({x: iter, y: lossTest});
+  lossChart.update({ duration: 0 });
 }
 
 function constructInputIds(): string[] {
@@ -1033,8 +1077,9 @@ export function getOutputWeights(network: nn.Node[][]): number[] {
 }
 
 function reset(onStartup=false) {
-  trainLossLineChart.reset();
-  testLossLineChart.reset();
+  lossChart.data.datasets[0].data = [];
+  lossChart.data.datasets[1].data = [];
+  lossChart.reset();
   state.serialize();
   if (!onStartup) {
     userHasInteracted();

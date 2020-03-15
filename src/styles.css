@@ -431,35 +431,8 @@ header h1 .optional {
   min-height: 100px;
 }
 
-.metric {
-  font-weight: 300;
-  font-size: 15px;
-  text-align: center;
-}
-
-.ts-graph-axes-chart {
-  margin: 0 5% 5% 5%;
-  display: grid;
-  grid-template-columns: 50px auto;
-}
-
-.ts-graph-axis-labels {
-  display: grid;
-  grid-template-rows: 10px auto 10px;
-  min-height: 100px;
-}
-
-.linechart {
-  margin-top: 10px;
-  martin-bottom: -2px;
-  background-color: #0001;
-  min-height: 100px;`
-}
-
-.output-stats .value {
-  /* color: rgba(0, 0, 0, 0.6); */
-  /*font-size: 20px;*/
-  font-weight: 800;
+#chart-container {
+  margin: 10%;
 }
 
 .more {
@@ -793,7 +766,10 @@ g.column rect {
   margin-bottom: 5px;
 }
 
-/* Output column */
+/* 
+ * ticks: {
+ * min: 0,
+ * },Output column */
 
 .output.column {
   width: 275px;
