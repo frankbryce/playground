@@ -201,7 +201,7 @@ let constructOptions = (yAxisLabel: string, stacked: boolean, type: string = 'li
         },
         scaleLabel: {
           display: true,
-          labelString: 'Computed Loss',
+          labelString: yAxisLabel,
         },
       }],
     },
