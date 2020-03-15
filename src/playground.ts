@@ -225,6 +225,53 @@ let lossChart = new Chart(document.getElementById("loss-chart"), {
   }
 });
 
+let nnShapeChart = new Chart(document.getElementById("nn-shape-chart"), {
+  type: 'line',
+  data: {
+    datasets: [],
+  },
+
+  options: {
+    scales: {
+      xAxes: [{
+        type: 'linear',
+        display: true,
+        scaleLabel: {
+          display: true,
+          labelString: 'Epochs',
+        },
+      }],
+      yAxes: [{
+        display: true,
+        scales: {
+          yAxes: [{
+            stacked: true,
+          }],
+        },
+        scaleLabel: {
+          display: true,
+          labelString: 'Number of Neurons',
+        },
+      }],
+    },
+  }
+});
+let constructShapeDataset = (layerIdx: number) => {
+  let opacity = 0.9;
+  if (layerIdx > 0) {
+    opacity = opacity - 0.7 * (layerIdx+1)/state.networkShape.length;
+  }
+  return {
+    label: 'Layer ' + layerIdx.toString() + ' Size',
+    backgroundColor: 'rgb(245, 147, 34, ' + opacity.toFixed(3) + ')',
+    borderColor: 'rgb(245, 147, 34, ' + opacity.toFixed(3) + ')',
+    data: [], 
+    fill: true,
+    pointRadius: 0,
+    pointHitRadius: 10,
+  };
+};
+
 function makeGUI() {
   d3.select("#reset-button").on("click", () => {
     reset();
@@ -1017,6 +1064,23 @@ function updateUI(updateNetwork = false, updateIter = true) {
   lossChart.data.datasets[0].data.push({x: iter, y: lossTrain});
   lossChart.data.datasets[1].data.push({x: iter, y: lossTest});
   lossChart.update({ duration: 0 });
+  networkLock.readLock(function(release) {
+    try {
+      let cumSize = 0;
+      for (let layerIdx = 0; layerIdx < state.networkShape.length; layerIdx++) {
+        if (layerIdx == nnShapeChart.data.datasets.length) {
+          nnShapeChart.data.datasets.push(constructShapeDataset(layerIdx));
+        }
+        cumSize += state.networkShape[layerIdx];
+        nnShapeChart.data.datasets[layerIdx].data.push(
+          { x: iter, y: cumSize, fill: '+1' }
+        );
+      }
+    } finally {
+      release();
+    }
+  });
+  nnShapeChart.update({ duration: 0 });
 }
 
 function constructInputIds(): string[] {
@@ -1080,6 +1144,8 @@ function reset(onStartup=false) {
   lossChart.data.datasets[0].data = [];
   lossChart.data.datasets[1].data = [];
   lossChart.reset();
+  nnShapeChart.data.datasets = [];
+  nnShapeChart.reset();
   state.serialize();
   if (!onStartup) {
     userHasInteracted();

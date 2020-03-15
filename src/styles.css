@@ -433,6 +433,8 @@ header h1 .optional {
 
 #chart-container {
   margin: 10%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
 .more {
